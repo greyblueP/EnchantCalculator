@@ -1,7 +1,7 @@
-import os, json
+from os import getcwd
+from json import load
 
 import tkinter as tk
-import tkinter.ttk as ttk
 import ttkbootstrap as ttkbs
 
 
@@ -139,9 +139,9 @@ class Enchanting:
 
     # 读取附魔表
     def get_enchant_list(self):
-        failname = os.getcwd() + "\\附魔对照表.json"
+        failname = getcwd() + "\\附魔对照表.json"
         with open(failname, "r", encoding="utf-8") as f:
-            Enchanting = json.load(f)
+            Enchanting = load(f)
         data = {}
         error = []
         for i in Enchanting:
