@@ -1,23 +1,25 @@
 from os import getcwd
 from json import load
 
-import tkinter as tk
-import ttkbootstrap as ttkbs
+# import tkinter as tk
+# import ttkbootstrap as ttkbs
+from tkinter import Tk, Label, Listbox, Frame
+from ttkbootstrap import Style, Combobox, Button
 
 
 class Enchanting:
     def __init__(self):
         self.data, self.error = self.get_enchant_list()
-        self.root = tk.Tk()
+        self.root = Tk()
         self.root.title("附魔顺序计算器")
         # 禁止改变窗口大小
         self.root.resizable(0, 0)
         # 设置窗口风格
-        self.style = ttkbs.Style(theme="minty")
+        self.style = Style(theme="minty")
         # 设置全局字体
         self.style.configure("TLabel", font=10)
         # 下拉菜单
-        self.cb = ttkbs.Combobox(
+        self.cb = Combobox(
             self.root,
             width=20,
             state="readonly",
@@ -37,32 +39,41 @@ class Enchanting:
             ),
         )
         # 显示可用附魔
-        self.label = tk.Label(self.root, text="可用附魔：")
+        self.label = Label(self.root, text="可用附魔：")
         self.label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
         # 显示可用附魔按钮
         self.old_enchant = self.get_enchant(self.data, self.cb.get())
         self.update_button(self.root, self.cb, self.old_enchant, [])
         # 显示已选附魔
-        self.label2 = tk.Label(self.root, text="已选附魔：")
+        self.label2 = Label(self.root, text="已选附魔：")
         self.label2.grid(row=0, column=1, sticky="w")
         # 显示列表
         rowspan = len(self.old_enchant) + 1
-        self.listbox = tk.Listbox(self.root, width=20, height=20, justify="center")
+        self.listbox = Listbox(self.root, width=20, height=20, justify="center")
         self.listbox.grid(row=1, column=1, rowspan=rowspan, padx=10, pady=0, sticky="W")
         self.listbox.bind("<Double-Button-1>", lambda event: self.delenchant())
         self.chosen_enchant = []
         self.error_enchant = []
         # 显示提示
-        self.label3 = tk.Label(self.root, text="双击删除附魔")
+        self.label3 = Label(self.root, text="双击删除附魔")
         self.label3.grid(row=rowspan + 1, column=1, padx=0, pady=10, sticky="N")
 
     # 将点击的附魔加入列表
     def addenchant(self, enchant):
-        self.is_error(enchant)
+        enchant_ = []
+        for i in self.old_enchant:
+            for j in i:
+                if j[1] == enchant[1]:
+                    for e in enchant:
+                        enchant_.append(e)
+                    break
+        self.is_error(enchant_)
         self.update_button_state()
         # 加入列表
-        self.chosen_enchant.append(enchant)
-        self.listbox.insert("end", enchant[1])
+        num = len(self.chosen_enchant)
+        enchant_[1] = f"{num + 1} {enchant_[1]}"
+        self.chosen_enchant.append(enchant_)
+        self.listbox.insert("end", f"{enchant_[1]}")
 
     # 判断是否有冲突
     def is_error(self, enchant):
@@ -111,16 +122,16 @@ class Enchanting:
         num = 0
         for i in enchant_list:
             num += 1
-            exec(f"self.fm{num} = tk.Frame(self.root)")
+            exec(f"self.fm{num} = Frame(self.root)")
             exec(f'self.fm{num}.grid(row=row, column=0, padx=10, pady=0, sticky="w")')
             for j in i:
-                exec(f"self.{j[0]}= ttkbs.Button(self.fm{num}, text=j[1])")
+                exec(f"self.{j[0]}= Button(self.fm{num}, text=j[1])")
                 getattr(self, j[0]).pack(side="left", padx=2, pady=2)
                 getattr(self, j[0]).config(command=lambda arg=j: self.addenchant(arg))
             row += 1
         self.old_enchant = enchant_list
         # 显示确认按钮
-        self.okbutton = ttkbs.Button(self.root, text="开始计算", bootstyle=("outline"))
+        self.okbutton = Button(self.root, text="开始计算", bootstyle=("outline"))
         self.okbutton.grid(row=row, column=0, padx=10, pady=10)
         self.okbutton.bind("<Button-1>", lambda event: self.ok())
 
@@ -128,8 +139,15 @@ class Enchanting:
     def delenchant(self):
         try:
             num = self.listbox.curselection()[0]
-            self.listbox.delete(num)
-            self.chosen_enchant.pop(num)
+            self.listbox.delete(0, self.listbox.size())  # 清空显示列表
+            self.chosen_enchant.pop(num)  # 删除项
+            # 重置列表编号
+            for i in range(len(self.chosen_enchant)):
+                # 去除编号
+                txt = self.chosen_enchant[i][1].lstrip("0123456789 ")
+                self.chosen_enchant[i][1] = f"{i+1} {txt}"
+                self.listbox.insert(i, self.chosen_enchant[i][1])
+            # 重置冲突附魔列表
             self.error_enchant = []
             for i in self.chosen_enchant:
                 self.is_error(i)
@@ -189,12 +207,12 @@ class Enchanting:
         enchant = self.chosen_enchant
         list = []
         for i in range(len(enchant)):
-            list.append([enchant[i][2][0], int(enchant[i][2][1]) * int(enchant[i][2][2])])
+            list.append([enchant[i][1], int(enchant[i][2][1]) * int(enchant[i][2][2])])
         list = sorted(list, key=lambda x: x[1], reverse=True)
 
         data = []
         for i in range(len(list)):
-            data.append([str(i) + list[i][0], list[i][1], 0])  # 附魔,等级,次数
+            data.append([list[i][0], list[i][1], 0])  # 附魔,等级,次数
         count = 0  # 附魔次数+1
         equip_ = [0, 0]  # 次数,总等级
         step = []
@@ -225,7 +243,7 @@ class Enchanting:
         for i in step:
             txt += i + "\n"
         txt += f"共计花费{equip_[1]}级经验"
-        self.label3 = tk.Label(self.root, text=txt, justify="left")
+        self.label3 = Label(self.root, text=txt, justify="left")
         self.label3.grid(row=0, column=2, rowspan=20, padx=10, pady=10, sticky="w")
 
     # 启动
